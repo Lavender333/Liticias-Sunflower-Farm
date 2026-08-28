@@ -635,6 +635,39 @@
           sans-serif;
         letter-spacing: 0.12em;
       }
+      .venmo-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        min-height: 48px;
+        padding: 14px 22px;
+        color: #fff;
+        background: #008cff;
+        border: 2px solid transparent;
+        border-radius: 999px;
+        box-shadow: 0 12px 28px rgba(0, 140, 255, 0.24);
+        font: 900 13px/1 Arial, sans-serif;
+        letter-spacing: 0.06em;
+        text-decoration: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+      .venmo-button:hover,
+      .venmo-button:focus-visible {
+        color: #fff;
+        background: #0074d4;
+        box-shadow: 0 16px 34px rgba(0, 116, 212, 0.3);
+        transform: translateY(-2px);
+      }
+      .qr .venmo-button {
+        margin-top: 5px;
+      }
+      .harvest-foot .venmo-button {
+        flex: 0 0 auto;
+        min-height: 42px;
+        padding: 11px 18px;
+      }
       .owner {
         padding: 0 0 85px;
       }
@@ -1015,6 +1048,10 @@
         }
         .harvest-foot {
           display: block;
+        }
+        .harvest-foot .venmo-button {
+          width: 100%;
+          margin-top: 14px;
         }
         .price-edit-row {
           grid-template-columns: 1fr 1fr;
@@ -3901,7 +3938,7 @@
               <h3>Payment options</h3>
               <p>
                 Use the current price board, then pay using the cash box or
-                payment option displayed at the stand.
+                pay securely through the farm’s Venmo account.
               </p>
             </article>
           </div>
@@ -3912,13 +3949,21 @@
           <p class="eyebrow">Simple self-serve payment</p>
           <h2>Pick. Scan. Enjoy.</h2>
           <p>
-            Select your produce, scan the payment code displayed at the stand,
-            and you’re all set. Thank you for supporting our small farm.
+            Select your produce, use the cash box or pay the farm directly with
+            Venmo, and you’re all set. Thank you for supporting our small farm.
           </p>
         </div>
         <div class="qr">
-          <span>🌻</span><strong>SCAN TO PAY</strong
-          ><small>Payment code displayed at the stand</small>
+          <span>🌻</span><strong>PAY THE FARM</strong
+          ><small>Venmo: @sunflowerfarmstand</small
+          ><a
+            class="venmo-button"
+            href="https://www.venmo.com/u/sunflowerfarmstand"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Pay Liticia's Sunflower Farm with Venmo"
+            >Pay with Venmo</a
+          >
         </div>
       </section>
       <section class="section information" id="policies">
@@ -4662,7 +4707,7 @@
       }
       function renderPriceBoard() {
         document.querySelector("#priceBoard").innerHTML =
-          `<div class="harvest-card-grid">${priceItems.map((item) => `<article class="harvest-price-card ${item.soldOut ? "sold" : ""}">${item.soldOut ? `<span class="harvest-sold-badge">Sold out</span>` : ""}<div class="harvest-card-icon">${clean(item.icon || "🌱")}</div><div class="harvest-card-amount">${item.soldOut ? "Unavailable" : `$${clean(item.price)} ${clean(item.unit || "")}`}</div><div class="harvest-card-name">${clean(item.name || "Farm item")}</div>${item.note ? `<div class="harvest-card-note">${clean(item.note)}</div>` : ""}</article>`).join("")}</div><div class="harvest-foot"><span>Pay by scan or cash box. Thank you! 🌻</span></div>`;
+          `<div class="harvest-card-grid">${priceItems.map((item) => `<article class="harvest-price-card ${item.soldOut ? "sold" : ""}">${item.soldOut ? `<span class="harvest-sold-badge">Sold out</span>` : ""}<div class="harvest-card-icon">${clean(item.icon || "🌱")}</div><div class="harvest-card-amount">${item.soldOut ? "Unavailable" : `$${clean(item.price)} ${clean(item.unit || "")}`}</div><div class="harvest-card-name">${clean(item.name || "Farm item")}</div>${item.note ? `<div class="harvest-card-note">${clean(item.note)}</div>` : ""}</article>`).join("")}</div><div class="harvest-foot"><span>Cash box or Venmo. Thank you! 🌻</span><a class="venmo-button" href="https://www.venmo.com/u/sunflowerfarmstand" target="_blank" rel="noopener noreferrer" aria-label="Pay Liticia's Sunflower Farm with Venmo">Pay with Venmo</a></div>`;
       }
       function renderPriceEditor() {
         document.querySelector("#priceEditor").innerHTML = priceItems
