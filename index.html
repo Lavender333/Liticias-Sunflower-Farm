@@ -2197,34 +2197,6 @@
         padding: 9px 11px;
         background: var(--rust);
       }
-      .backend-card {
-        padding: clamp(22px, 4vw, 38px);
-        border: 1px solid rgba(50, 67, 28, 0.18);
-        border-radius: 20px;
-        background: linear-gradient(145deg, #fffdf7, #f7efd9);
-        box-shadow: var(--shadow-sm);
-      }
-      .backend-card h3 {
-        margin-top: 0;
-      }
-      .backend-card .button {
-        display: inline-flex;
-        margin-top: 10px;
-      }
-      .backend-card ul {
-        margin: 18px 0 0;
-        padding-left: 20px;
-        line-height: 1.8;
-      }
-      .backend-status {
-        margin-top: 16px;
-        color: var(--olive);
-        font:
-          700 12px/1.5 Arial,
-          sans-serif;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
     </style>
     <style id="event-editor-update-styles">
       .event-form-actions {
@@ -4066,48 +4038,19 @@
             </form>
             <div id="ownerPanel" hidden>
               <div class="owner-tabs">
-                <button class="active" data-tab="backend" type="button">
-                  Google Sheets backend</button
+                <button class="active" data-tab="records" type="button">
+                  Consent records</button
+                ><button data-tab="subscribers" type="button">
+                  Email subscribers</button
+                ><button data-tab="prices" type="button">
+                  Price list editor</button
+                ><button data-tab="events" type="button">Calendar editor</button
+                ><button data-tab="comments" type="button">
+                  Comment approval</button
                 ><button data-tab="password" type="button">Password</button
-                ><button data-tab="data" type="button">Device backup</button>
+                ><button data-tab="data" type="button">Data backup</button>
               </div>
-              <section class="panel active" id="backendPanel">
-                <div class="backend-card">
-                  <p class="eyebrow">Private farm workspace</p>
-                  <h3>Open the shared Google Sheets backend</h3>
-                  <p>
-                    Customer email signups, participation consents, and
-                    guestbook comments are saved here. Edit the
-                    <strong>Events</strong> and <strong>Prices</strong> tabs to
-                    update the public website for every visitor.
-                  </p>
-                  <a
-                    class="button"
-                    href="https://docs.google.com/spreadsheets/d/1bMNOpl1w6xQnaDbdWbgPT3C57DQWhtYMDwm5bNah0cA/edit"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >Open farm backend</a
-                  >
-                  <ul>
-                    <li>
-                      Subscribers and private records stay inside the owner-only
-                      Sheet.
-                    </li>
-                    <li>
-                      Events and prices are the only tabs shared with the public
-                      website.
-                    </li>
-                    <li>
-                      Refresh the website after an edit to see the latest
-                      information.
-                    </li>
-                  </ul>
-                  <p class="backend-status" id="backendConnectionStatus">
-                    Google Sheets connection is being prepared.
-                  </p>
-                </div>
-              </section>
-              <section class="panel" id="recordsPanel">
+              <section class="panel active" id="recordsPanel">
                 <h3>Saved participation records</h3>
                 <p>
                   Successful consent submissions are emailed to the farm. This
@@ -4595,7 +4538,6 @@
         return result;
       }
       async function loadFarmBackend() {
-        const status = document.querySelector("#backendConnectionStatus");
         try {
           const response = await fetch(
               `${FARM_BACKEND_URL}?action=public&v=${Date.now()}`,
@@ -4616,13 +4558,8 @@
           renderOwnerEvents();
           renderPriceBoard();
           renderPriceEditor();
-          if (status)
-            status.textContent = "Connected to the shared farm backend.";
         } catch (error) {
           console.error("Farm backend unavailable", error);
-          if (status)
-            status.textContent =
-              "Using the most recently saved website information.";
         }
       }
       function renderEvents() {
