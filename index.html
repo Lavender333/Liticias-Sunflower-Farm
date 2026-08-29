@@ -647,10 +647,14 @@
         border: 2px solid transparent;
         border-radius: 999px;
         box-shadow: 0 12px 28px rgba(0, 140, 255, 0.24);
-        font: 900 13px/1 Arial, sans-serif;
+        font:
+          900 13px/1 Arial,
+          sans-serif;
         letter-spacing: 0.06em;
         text-decoration: none;
-        transition: transform 0.2s ease, box-shadow 0.2s ease,
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
           background 0.2s ease;
       }
       .venmo-button:hover,
@@ -3909,8 +3913,8 @@
               <span>💛</span>
               <h3>Payment options</h3>
               <p>
-                Use the current price board, then pay using the cash box or
-                pay securely through the farm’s Venmo account.
+                Use the current price board, then pay using the cash box or pay
+                securely through the farm’s Venmo account.
               </p>
             </article>
           </div>
@@ -4053,8 +4057,8 @@
               <section class="panel active" id="recordsPanel">
                 <h3>Saved participation records</h3>
                 <p>
-                  Successful consent submissions are emailed to the farm. This
-                  table shows records saved in this browser on this device.
+                  This table displays the same participation records saved in
+                  the farm’s private Google Sheet.
                 </p>
                 <div class="records-actions">
                   <input
@@ -4081,8 +4085,8 @@
                 <h3>Email subscribers</h3>
                 <p class="subscriber-count" id="subscriberCount"></p>
                 <p>
-                  Successful signups are emailed to the farm. This table shows
-                  signups saved in this browser on this device.
+                  This table displays the same email subscribers saved in the
+                  farm’s private Google Sheet.
                 </p>
                 <div class="records-actions">
                   <input
@@ -4110,8 +4114,8 @@
                 <h3>Update the Harvest Board</h3>
                 <p class="owner-help">
                   Change names, prices, categories, descriptions, or sold-out
-                  status. Saved changes immediately update the public “What’s
-                  Fresh Today” board on this device.
+                  status. Saved changes update both the Google Sheet and the
+                  public “What’s Fresh Today” board.
                 </p>
                 <div class="price-editor" id="priceEditor"></div>
                 <div class="price-actions">
@@ -4169,7 +4173,7 @@
                 </form>
                 <h3 class="event-admin-title">Current calendar items</h3>
                 <p class="owner-help">
-                  Remove an item here to update the calendar on this device.
+                  Changes here update both the Google Sheet and public calendar.
                 </p>
                 <div class="records">
                   <table>
@@ -4209,9 +4213,8 @@
               <section class="panel" id="passwordPanel">
                 <h3>Change owner password</h3>
                 <p class="owner-help">
-                  The owner password begins as <strong>sunlower26</strong> and
-                  can be changed on this device. The separate recovery password
-                  remains available.
+                  The owner password is shared across authorized devices. The
+                  separate recovery password remains available.
                 </p>
                 <form class="owner-form" id="ownerPasswordForm">
                   <label
@@ -4240,8 +4243,9 @@
               <section class="panel" id="dataPanel">
                 <h3>Data backup</h3>
                 <p>
-                  Download one backup containing this device’s consent records,
-                  email subscribers, comments, price list, and calendar items.
+                  Download one backup containing the synchronized consent
+                  records, email subscribers, comments, price list, and calendar
+                  items.
                 </p>
                 <button id="exportAllData" type="button">
                   Download complete JSON backup
@@ -4277,18 +4281,11 @@
     </footer>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
     <script>
-      const OWNER_PASSWORD_HASH = "e8425bf6",
-        RECOVERY_PASSWORD_HASH = "a085ecfd";
       const FARM_BACKEND_URL =
         "https://script.google.com/macros/s/AKfycbzrJ3LGHICwjsG2bUn02rI85DpfmA_2R2UpzJbmAYhRKtKxe1-S_YygCH-wUKZoBp0Xkw/exec";
       let failedOwnerLogins = 0,
-        ownerLockedUntil = 0;
-      function passwordHash(value) {
-        let hash = 2166136261;
-        for (const character of String(value))
-          hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
-        return (hash >>> 0).toString(16);
-      }
+        ownerLockedUntil = 0,
+        ownerToken = "";
       const store = {
         get: (key, fallback) => {
           try {
@@ -4537,6 +4534,46 @@
           throw new Error(result.error || "The farm record could not be saved");
         return result;
       }
+      async function ownerRequest(type, fields = {}) {
+        const response = await fetch(FARM_BACKEND_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ type, token: ownerToken, ...fields }),
+          }),
+          result = await response.json();
+        if (!response.ok || !result.success) {
+          if (String(result.error || "").includes("session expired")) {
+            ownerToken = "";
+            document.querySelector("#ownerPanel").hidden = true;
+            document.querySelector("#ownerLogin").hidden = false;
+          }
+          throw new Error(
+            result.error || "The owner update could not be saved",
+          );
+        }
+        return result;
+      }
+      function applyOwnerData(data) {
+        consents = Array.isArray(data.consents) ? data.consents : [];
+        subscribers = Array.isArray(data.subscribers) ? data.subscribers : [];
+        comments = Array.isArray(data.comments) ? data.comments : [];
+        events = Array.isArray(data.events) ? data.events : [];
+        priceItems = Array.isArray(data.prices) ? data.prices : [];
+        store.set("liticia-events", events);
+        store.set("liticia-price-items", priceItems);
+        renderRecords(document.querySelector("#recordSearch").value);
+        renderSubscribers(document.querySelector("#subscriberSearch").value);
+        renderOwnerComments();
+        renderComments();
+        renderOwnerEvents();
+        renderEvents();
+        renderPriceEditor();
+        renderPriceBoard();
+      }
+      async function refreshOwnerData() {
+        const result = await ownerRequest("owner-data");
+        applyOwnerData(result.data);
+      }
       async function loadFarmBackend() {
         try {
           const response = await fetch(
@@ -4554,7 +4591,9 @@
             priceItems = result.prices;
             store.set("liticia-price-items", priceItems);
           }
+          if (Array.isArray(result.comments)) comments = result.comments;
           renderEvents();
+          renderComments();
           renderOwnerEvents();
           renderPriceBoard();
           renderPriceEditor();
@@ -4593,7 +4632,7 @@
                   `<tr><td>${clean(r.submittedAt)}</td><td><b>${clean(r.participantName)}</b><br>${clean(r.contact)}${r.guardianName ? `<br>Guardian: ${clean(r.guardianName)}` : ""}</td><td>${clean(r.activity)}</td><td>${clean(r.visitDate)}</td><td>${clean(r.signature)}</td></tr>`,
               )
               .join("")
-          : `<tr><td colspan="5">No consent records saved on this device.</td></tr>`;
+          : `<tr><td colspan="5">No participation records are currently saved.</td></tr>`;
       }
       function renderOwnerComments() {
         const rows = [...comments].sort(
@@ -4606,7 +4645,7 @@
                   `<tr><td><span class="status-chip ${c.approved ? "" : "pending"}">${c.approved ? "Approved" : "Pending"}</span></td><td>${clean(c.name)}</td><td>${clean(c.message)}</td><td>${clean(c.createdAt)}</td><td><div class="comment-actions">${c.approved ? "" : `<button type="button" data-approve-comment="${clean(c.id)}">Approve</button>`}<button class="danger-button" type="button" data-remove-comment="${clean(c.id)}">Remove</button></div></td></tr>`,
               )
               .join("")
-          : `<tr><td colspan="5">No guestbook comments saved on this device.</td></tr>`;
+          : `<tr><td colspan="5">No guestbook comments are currently saved.</td></tr>`;
       }
       function renderSubscribers(query = "") {
         const q = query.toLowerCase(),
@@ -4622,7 +4661,7 @@
                   `<tr><td>${clean(s.subscribedAt)}</td><td>${clean(s.name || "—")}</td><td><a href="mailto:${clean(s.email)}">${clean(s.email)}</a></td><td><button type="button" data-remove-subscriber="${clean(s.id)}">Remove</button></td></tr>`,
               )
               .join("")
-          : `<tr><td colspan="4">No email subscribers saved on this device.</td></tr>`;
+          : `<tr><td colspan="4">No email subscribers are currently saved.</td></tr>`;
       }
       function renderOwnerEvents() {
         document.querySelector("#ownerEventRows").innerHTML = events.length
@@ -4632,7 +4671,7 @@
                   `<tr><td><b>${clean(event.title)}</b><br><small>${clean(event.category)}</small></td><td>${clean(event.eventDate)}<br><small>${clean(event.time)}</small></td><td>${clean(event.price || "—")}</td><td><div class="event-admin-actions"><button class="edit-event" type="button" data-edit-event="${index}">Edit</button><button type="button" data-remove-event="${index}">Remove</button></div></td></tr>`,
               )
               .join("")
-          : `<tr><td colspan="4">No calendar items saved on this device.</td></tr>`;
+          : `<tr><td colspan="4">No calendar items are currently saved.</td></tr>`;
       }
       function resetEventEditor() {
         const form = document.querySelector("#eventForm");
@@ -4695,6 +4734,7 @@
             ]);
             consents.unshift(record);
             store.set("liticia-consents", consents);
+            if (ownerToken) await refreshOwnerData();
             form.reset();
             renderRecords();
             toast("Consent submitted to the farm—thank you!");
@@ -4741,6 +4781,7 @@
             ]);
             comments.unshift(comment);
             store.set("liticia-comments", comments);
+            if (ownerToken) await refreshOwnerData();
             form.reset();
             renderOwnerComments();
             toast("Thank you—your comment was sent to the farm for approval.");
@@ -4806,6 +4847,7 @@
               delivery: "emailed",
             });
             store.set("liticia-email-subscribers", subscribers);
+            if (ownerToken) await refreshOwnerData();
             form.reset();
             document.querySelector("#subscriberInterest").value =
               "Farm updates";
@@ -4841,45 +4883,47 @@
         );
         toast("Enter your email to join the Goat Yoga waitlist.");
       });
-      document.querySelector("#ownerLogin").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const now = Date.now(),
-          status = document.querySelector("#ownerStatus");
-        if (now < ownerLockedUntil) {
-          status.textContent =
-            "Too many attempts. Please wait 30 seconds and try again.";
-          return;
-        }
-        const attemptedHash = passwordHash(
-            document.querySelector("#ownerPassword").value,
-          ),
-          savedOwnerHash =
-            localStorage.getItem("liticia-owner-password-hash") ||
-            OWNER_PASSWORD_HASH;
-        if (
-          attemptedHash !== RECOVERY_PASSWORD_HASH &&
-          attemptedHash !== savedOwnerHash
-        ) {
-          failedOwnerLogins++;
-          if (failedOwnerLogins >= 5) {
-            ownerLockedUntil = now + 30000;
-            failedOwnerLogins = 0;
+      document
+        .querySelector("#ownerLogin")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const now = Date.now(),
+            status = document.querySelector("#ownerStatus"),
+            button = e.currentTarget.querySelector('button[type="submit"]'),
+            password = document.querySelector("#ownerPassword").value;
+          if (now < ownerLockedUntil) {
             status.textContent =
-              "Too many attempts. Owner panel locked for 30 seconds.";
-          } else
-            status.textContent = `That password did not match. ${5 - failedOwnerLogins} attempts remaining.`;
-          return;
-        }
-        failedOwnerLogins = 0;
-        e.currentTarget.hidden = true;
-        document.querySelector("#ownerPanel").hidden = false;
-        status.textContent = "Owner panel opened.";
-        renderRecords();
-        renderSubscribers();
-        renderPriceEditor();
-        renderOwnerEvents();
-        renderOwnerComments();
-      });
+              "Too many attempts. Please wait 30 seconds and try again.";
+            return;
+          }
+          button.disabled = true;
+          button.textContent = "Checking…";
+          status.textContent = "Securely loading shared farm records…";
+          try {
+            const result = await ownerRequest("owner-login", { password });
+            ownerToken = result.token;
+            failedOwnerLogins = 0;
+            e.currentTarget.reset();
+            e.currentTarget.hidden = true;
+            document.querySelector("#ownerPanel").hidden = false;
+            applyOwnerData(result.data);
+            status.textContent = "Owner panel synchronized with Google Sheets.";
+          } catch (error) {
+            failedOwnerLogins++;
+            if (failedOwnerLogins >= 5) {
+              ownerLockedUntil = now + 30000;
+              failedOwnerLogins = 0;
+              status.textContent =
+                "Too many attempts. Owner panel locked for 30 seconds.";
+            } else {
+              status.textContent = `That password did not match. ${5 - failedOwnerLogins} attempts remaining.`;
+            }
+            console.error("Owner login failed", error);
+          } finally {
+            button.disabled = false;
+            button.textContent = "Open owner panel";
+          }
+        });
       document.querySelectorAll("[data-tab]").forEach((btn) =>
         btn.addEventListener("click", () => {
           document
@@ -4895,25 +4939,14 @@
       );
       document
         .querySelector("#ownerPasswordForm")
-        .addEventListener("submit", (e) => {
+        .addEventListener("submit", async (e) => {
           e.preventDefault();
           const form = e.currentTarget,
             current = form.elements.currentPassword.value,
             next = form.elements.newPassword.value,
             confirm = form.elements.confirmPassword.value,
             status = document.querySelector("#ownerStatus"),
-            currentHash = passwordHash(current),
-            savedOwnerHash =
-              localStorage.getItem("liticia-owner-password-hash") ||
-              OWNER_PASSWORD_HASH;
-          if (
-            currentHash !== RECOVERY_PASSWORD_HASH &&
-            currentHash !== savedOwnerHash
-          ) {
-            status.textContent =
-              "Current owner or recovery password did not match.";
-            return;
-          }
+            button = form.querySelector('button[type="submit"]');
           if (next.length < 8) {
             status.textContent =
               "The new owner password must be at least 8 characters.";
@@ -4923,14 +4956,24 @@
             status.textContent = "The new owner passwords do not match.";
             return;
           }
-          localStorage.setItem(
-            "liticia-owner-password-hash",
-            passwordHash(next),
-          );
-          form.reset();
-          status.textContent =
-            "Owner password changed on this device. The recovery password is unchanged.";
-          toast("Owner password updated.");
+          button.disabled = true;
+          button.textContent = "Saving…";
+          try {
+            await ownerRequest("owner-change-password", {
+              currentPassword: current,
+              newPassword: next,
+            });
+            form.reset();
+            status.textContent =
+              "Owner password changed for the synchronized owner account. The recovery password is unchanged.";
+            toast("Owner password updated.");
+          } catch (error) {
+            status.textContent = error.message;
+            toast("The password could not be updated.");
+          } finally {
+            button.disabled = false;
+            button.textContent = "Save owner password";
+          }
         });
       document
         .querySelector("#recordSearch")
@@ -4940,39 +4983,55 @@
         .addEventListener("input", (e) => renderSubscribers(e.target.value));
       document
         .querySelector("#subscriberRows")
-        .addEventListener("click", (e) => {
+        .addEventListener("click", async (e) => {
           const button = e.target.closest("[data-remove-subscriber]");
           if (!button) return;
-          subscribers = subscribers.filter(
-            (s) => s.id !== button.dataset.removeSubscriber,
+          const subscriber = subscribers.find(
+            (s) => s.id === button.dataset.removeSubscriber,
           );
-          store.set("liticia-email-subscribers", subscribers);
-          renderSubscribers(document.querySelector("#subscriberSearch").value);
-          toast("Subscriber removed.");
+          if (!subscriber) return;
+          button.disabled = true;
+          try {
+            const result = await ownerRequest("owner-delete-subscriber", {
+              rowNumber: subscriber.rowNumber,
+              email: subscriber.email,
+            });
+            applyOwnerData(result.data);
+            toast("Subscriber removed from the website and Google Sheet.");
+          } catch (error) {
+            toast(error.message);
+          } finally {
+            button.disabled = false;
+          }
         });
       document
         .querySelector("#ownerCommentRows")
-        .addEventListener("click", (e) => {
+        .addEventListener("click", async (e) => {
           const approve = e.target.closest("[data-approve-comment]"),
             remove = e.target.closest("[data-remove-comment]");
-          if (approve) {
-            const comment = comments.find(
-              (c) => c.id === approve.dataset.approveComment,
+          const button = approve || remove;
+          if (!button) return;
+          const id = approve
+              ? approve.dataset.approveComment
+              : remove.dataset.removeComment,
+            comment = comments.find((item) => item.id === id);
+          if (!comment) return;
+          button.disabled = true;
+          try {
+            const result = await ownerRequest(
+              approve ? "owner-approve-comment" : "owner-delete-comment",
+              { rowNumber: comment.rowNumber, message: comment.message },
             );
-            if (comment) comment.approved = true;
-            store.set("liticia-comments", comments);
-            renderOwnerComments();
-            renderComments();
-            toast("Comment approved and displayed.");
-          }
-          if (remove) {
-            comments = comments.filter(
-              (c) => c.id !== remove.dataset.removeComment,
+            applyOwnerData(result.data);
+            toast(
+              approve
+                ? "Comment approved on the website and Google Sheet."
+                : "Comment removed from the website and Google Sheet.",
             );
-            store.set("liticia-comments", comments);
-            renderOwnerComments();
-            renderComments();
-            toast("Comment removed.");
+          } catch (error) {
+            toast(error.message);
+          } finally {
+            button.disabled = false;
           }
         });
       document
@@ -5022,25 +5081,44 @@
         a.click();
         URL.revokeObjectURL(a.href);
       });
-      document.querySelector("#eventForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const item = Object.fromEntries(
-            new FormData(e.currentTarget).entries(),
-          ),
-          editValue = document.querySelector("#eventEditIndex").value,
-          isEditing = editValue !== "",
-          editIndex = Number(editValue);
-        if (isEditing && events[editIndex]) events[editIndex] = item;
-        else events.unshift(item);
-        store.set("liticia-events", events);
-        resetEventEditor();
-        renderEvents();
-        renderOwnerEvents();
-        toast(isEditing ? "Calendar item updated." : "Calendar item added.");
-      });
+      document
+        .querySelector("#eventForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const item = Object.fromEntries(
+              new FormData(e.currentTarget).entries(),
+            ),
+            editValue = document.querySelector("#eventEditIndex").value,
+            isEditing = editValue !== "",
+            editIndex = Number(editValue),
+            nextEvents = events.map((event) => ({ ...event })),
+            button = document.querySelector("#eventSubmitButton");
+          if (isEditing && nextEvents[editIndex]) nextEvents[editIndex] = item;
+          else nextEvents.unshift(item);
+          button.disabled = true;
+          button.textContent = "Saving…";
+          try {
+            const result = await ownerRequest("owner-save-events", {
+              events: nextEvents,
+            });
+            applyOwnerData(result.data);
+            resetEventEditor();
+            toast(
+              isEditing
+                ? "Calendar updated on the website and Google Sheet."
+                : "Calendar item added to the website and Google Sheet.",
+            );
+          } catch (error) {
+            toast(error.message);
+          } finally {
+            button.disabled = false;
+            if (document.querySelector("#eventEditIndex").value === "")
+              button.textContent = "Add to calendar";
+          }
+        });
       document
         .querySelector("#ownerEventRows")
-        .addEventListener("click", (e) => {
+        .addEventListener("click", async (e) => {
           const edit = e.target.closest("[data-edit-event]"),
             remove = e.target.closest("[data-remove-event]");
           if (edit) {
@@ -5066,12 +5144,27 @@
           }
           if (remove) {
             const index = Number(remove.dataset.removeEvent);
-            events.splice(index, 1);
-            store.set("liticia-events", events);
-            resetEventEditor();
-            renderEvents();
-            renderOwnerEvents();
-            toast("Calendar item removed.");
+            if (
+              !events[index] ||
+              !confirm("Remove this calendar item everywhere?")
+            )
+              return;
+            const nextEvents = events.filter(
+              (_, itemIndex) => itemIndex !== index,
+            );
+            remove.disabled = true;
+            try {
+              const result = await ownerRequest("owner-save-events", {
+                events: nextEvents,
+              });
+              applyOwnerData(result.data);
+              resetEventEditor();
+              toast("Calendar item removed from the website and Google Sheet.");
+            } catch (error) {
+              toast(error.message);
+            } finally {
+              remove.disabled = false;
+            }
           }
         });
       document
@@ -5105,22 +5198,38 @@
         });
         renderPriceEditor();
       });
-      document.querySelector("#savePrices").addEventListener("click", () => {
-        const invalid = priceItems.find(
-          (item) =>
-            !item.name.trim() ||
-            item.price === "" ||
-            Number.isNaN(Number(item.price)) ||
-            Number(item.price) < 0,
-        );
-        if (invalid)
-          return toast("Each price-list item needs a name and a valid price.");
-        store.set("liticia-price-items", priceItems);
-        renderPriceBoard();
-        document.querySelector("#ownerStatus").textContent =
-          "Price list saved and public board updated on this device.";
-        toast("Harvest Board prices saved.");
-      });
+      document
+        .querySelector("#savePrices")
+        .addEventListener("click", async (e) => {
+          const invalid = priceItems.find(
+            (item) =>
+              !item.name.trim() ||
+              item.price === "" ||
+              Number.isNaN(Number(item.price)) ||
+              Number(item.price) < 0,
+          );
+          if (invalid)
+            return toast(
+              "Each price-list item needs a name and a valid price.",
+            );
+          const button = e.currentTarget;
+          button.disabled = true;
+          button.textContent = "Saving…";
+          try {
+            const result = await ownerRequest("owner-save-prices", {
+              prices: priceItems,
+            });
+            applyOwnerData(result.data);
+            document.querySelector("#ownerStatus").textContent =
+              "Price list synchronized with the website and Google Sheet.";
+            toast("Harvest Board prices saved everywhere.");
+          } catch (error) {
+            toast(error.message);
+          } finally {
+            button.disabled = false;
+            button.textContent = "Save price list";
+          }
+        });
       document
         .querySelector("#copyPrices")
         .addEventListener("click", async () => {
