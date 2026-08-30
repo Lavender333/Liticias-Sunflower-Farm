@@ -3989,9 +3989,10 @@
               <p><strong>Last updated August 27, 2026.</strong></p>
               <p>
                 Participation consent forms, guestbook comments, and email-list
-                signups are saved to the farm’s private Google Sheets backend
-                and sent through FormSubmit to the farm’s designated email
-                inboxes. Public visitors can read only the current Events and
+                signups are saved to the farm’s private Google Sheets backend.
+                Completed participation consent forms are also emailed as PDF
+                attachments to the farm’s designated inboxes. Public visitors
+                can read only the current Events and
                 Prices information; private customer records are not exposed.
               </p>
               <p>
@@ -4716,32 +4717,17 @@
           button.disabled = true;
           button.textContent = "Submitting…";
           try {
-            await Promise.all([
-              saveFarmSubmission("consent", record),
-              sendFarmNotification(
-                `New farm participation consent – ${record.participantName}`,
-                {
-                  participant_name: record.participantName,
-                  contact: record.contact,
-                  parent_or_guardian: record.guardianName || "Not provided",
-                  activity: record.activity,
-                  planned_visit_date: record.visitDate,
-                  emergency_contact: record.emergencyContact,
-                  risk_terms_accepted: record.acceptedRisk ? "Yes" : "No",
-                  photo_permission: record.photoPermission ? "Yes" : "No",
-                  typed_signature: record.signature,
-                  submitted_at: record.submittedAt,
-                  message:
-                    "A customer submitted Liticia's Sunflower Farm participation consent.",
-                },
-              ),
-            ]);
+            const consentResult = await saveFarmSubmission("consent", record);
             consents.unshift(record);
             store.set("liticia-consents", consents);
             if (ownerToken) await refreshOwnerData();
             form.reset();
             renderRecords();
-            toast("Consent submitted to the farm—thank you!");
+            toast(
+              consentResult.notificationSent === false
+                ? "Consent saved. The farm’s PDF email could not be sent, so please contact the farm."
+                : "Consent submitted and emailed to the farm—thank you!",
+            );
           } catch (error) {
             console.error("Consent delivery failed", error);
             toast(
