@@ -746,6 +746,12 @@
       .records th {
         color: var(--olive);
       }
+      .record-pdf-button {
+        min-width: 112px;
+        padding: 9px 12px;
+        white-space: nowrap;
+        font-size: 11px;
+      }
       .records-actions {
         display: flex;
         gap: 10px;
@@ -4080,6 +4086,7 @@
                         <th>Activity</th>
                         <th>Visit</th>
                         <th>Signature</th>
+                        <th>PDF</th>
                       </tr>
                     </thead>
                     <tbody id="recordRows"></tbody>
@@ -4634,10 +4641,110 @@
           ? rows
               .map(
                 (r) =>
-                  `<tr><td>${clean(r.submittedAt)}</td><td><b>${clean(r.participantName)}</b><br>${clean(r.contact)}${r.guardianName ? `<br>Guardian: ${clean(r.guardianName)}` : ""}</td><td>${clean(r.activity)}</td><td>${clean(r.visitDate)}</td><td>${clean(r.signature)}</td></tr>`,
+                  `<tr><td>${clean(r.submittedAt)}</td><td><b>${clean(r.participantName)}</b><br>${clean(r.contact)}${r.guardianName ? `<br>Guardian: ${clean(r.guardianName)}` : ""}</td><td>${clean(r.activity)}</td><td>${clean(r.visitDate)}</td><td>${clean(r.signature)}</td><td><button class="record-pdf-button" type="button" data-download-consent="${consents.indexOf(r)}">Download PDF</button></td></tr>`,
               )
               .join("")
-          : `<tr><td colspan="5">No participation records are currently saved.</td></tr>`;
+          : `<tr><td colspan="6">No participation records are currently saved.</td></tr>`;
+      }
+      function consentPdfAscii(value) {
+        return String(value ?? "")
+          .replace(/[‘’]/g, "'")
+          .replace(/[“”]/g, '"')
+          .replace(/[–—]/g, "-")
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^\x20-\x7E]/g, " ");
+      }
+      function consentPdfEscape(value) {
+        return consentPdfAscii(value).replace(/([\\()])/g, "\\$1");
+      }
+      function consentPdfWrap(label, value, width = 76) {
+        const text = `${label}: ${consentPdfAscii(value || "Not provided")}`;
+        const words = text.split(/\s+/);
+        const lines = [];
+        let line = "";
+        words.forEach((word) => {
+          if ((line + " " + word).trim().length > width && line) {
+            lines.push(line);
+            line = `    ${word}`;
+          } else {
+            line = (line + " " + word).trimStart();
+          }
+        });
+        if (line) lines.push(line);
+        return lines;
+      }
+      function downloadConsentPdf(record) {
+        const fields = [
+          ["Submitted", record.submittedAt],
+          ["Participant name", record.participantName],
+          ["Email or phone", record.contact],
+          ["Parent/guardian", record.guardianName],
+          ["Activity", record.activity],
+          ["Planned visit date", record.visitDate],
+          ["Emergency contact", record.emergencyContact],
+          ["Risk terms accepted", record.acceptedRisk ? "Yes" : "No"],
+          ["Photo permission", record.photoPermission ? "Yes" : "No"],
+          ["Typed signature", record.signature],
+        ];
+        const lines = fields.flatMap(([label, value]) =>
+          consentPdfWrap(label, value),
+        );
+        const commands = [
+          "0.15 0.22 0.08 rg",
+          "BT /F2 22 Tf 50 748 Td (Liticia's Sunflower Farm) Tj ET",
+          "0.85 0.64 0.10 RG 3 w 50 730 m 562 730 l S",
+          "0.29 0.34 0.17 rg",
+          "BT /F2 12 Tf 50 705 Td (PARTICIPATION CONSENT RECORD) Tj ET",
+        ];
+        let y = 676;
+        lines.forEach((line, index) => {
+          const font = /^ {0,3}[^:]+:/.test(line) ? "F2" : "F1";
+          commands.push(
+            `BT /${font} 10 Tf 50 ${y} Td (${consentPdfEscape(line)}) Tj ET`,
+          );
+          y -= 19;
+          if (index === 1 || index === 4 || index === 7) y -= 5;
+        });
+        commands.push(
+          "0.78 0.76 0.67 RG 1 w 50 72 m 562 72 l S",
+          "0.38 0.42 0.25 rg",
+          "BT /F1 8 Tf 50 55 Td (Downloaded from the private farm owner panel.) Tj ET",
+        );
+        const stream = commands.join("\n");
+        const objects = [
+          "<< /Type /Catalog /Pages 2 0 R >>",
+          "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+          "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+          "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+          "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+          `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+        ];
+        let pdf = "%PDF-1.4\n";
+        const offsets = [0];
+        objects.forEach((object, index) => {
+          offsets.push(pdf.length);
+          pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+        });
+        const xrefOffset = pdf.length;
+        pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+        offsets.slice(1).forEach((offset) => {
+          pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+        });
+        pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+        const safeName = consentPdfAscii(record.participantName || "Participant")
+          .replace(/[^a-z0-9_-]+/gi, "-")
+          .replace(/^-+|-+$/g, "");
+        const blob = new Blob([pdf], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Liticias-Farm-Consent-${safeName || "Participant"}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast("Consent PDF downloaded.");
       }
       function renderOwnerComments() {
         const rows = [...comments].sort(
@@ -4984,6 +5091,13 @@
       document
         .querySelector("#recordSearch")
         .addEventListener("input", (e) => renderRecords(e.target.value));
+      document.querySelector("#recordRows").addEventListener("click", (e) => {
+        const button = e.target.closest("[data-download-consent]");
+        if (!button) return;
+        const record = consents[Number(button.dataset.downloadConsent)];
+        if (!record) return toast("That consent record is no longer available.");
+        downloadConsentPdf(record);
+      });
       document
         .querySelector("#subscriberSearch")
         .addEventListener("input", (e) => renderSubscribers(e.target.value));
