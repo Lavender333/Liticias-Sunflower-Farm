@@ -4717,17 +4717,13 @@
           button.disabled = true;
           button.textContent = "Submitting…";
           try {
-            const consentResult = await saveFarmSubmission("consent", record);
+            await saveFarmSubmission("consent", record);
             consents.unshift(record);
             store.set("liticia-consents", consents);
             if (ownerToken) await refreshOwnerData();
             form.reset();
             renderRecords();
-            toast(
-              consentResult.notificationSent === false
-                ? "Consent saved. The farm’s PDF email could not be sent, so please contact the farm."
-                : "Consent submitted and emailed to the farm—thank you!",
-            );
+            toast("Consent submitted—thank you!");
           } catch (error) {
             console.error("Consent delivery failed", error);
             toast(
