@@ -5014,9 +5014,9 @@
           button.disabled = true;
           button.textContent = "Submitting…";
           try {
-            await Promise.all([
-              saveFarmSubmission("comment", comment),
-              sendFarmNotification(
+            const commentResult = await saveFarmSubmission("comment", comment);
+            if (commentResult.notificationSent === false) {
+              await sendFarmNotification(
                 "New Liticia's Sunflower Farm guestbook comment",
                 {
                   name: comment.name,
@@ -5025,8 +5025,8 @@
                   message:
                     "A customer submitted a guestbook comment for review.",
                 },
-              ),
-            ]);
+              );
+            }
             comments.unshift(comment);
             store.set("liticia-comments", comments);
             if (ownerToken) await refreshOwnerData();
@@ -5067,14 +5067,14 @@
           button.disabled = true;
           button.textContent = "Joining…";
           try {
-            await Promise.all([
-              saveFarmSubmission("subscriber", {
+            const signupResult = await saveFarmSubmission("subscriber", {
                 name,
                 email,
                 interest,
                 consent: true,
-              }),
-              sendFarmNotification(
+              });
+            if (signupResult.notificationSent === false) {
+              await sendFarmNotification(
                 `New Liticia's Sunflower Farm signup – ${interest}`,
                 {
                   name: name || "Farm subscriber",
@@ -5082,8 +5082,8 @@
                   interest,
                   message: `This customer requested: ${interest}.`,
                 },
-              ),
-            ]);
+              );
+            }
             subscribers.unshift({
               id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
               name,
