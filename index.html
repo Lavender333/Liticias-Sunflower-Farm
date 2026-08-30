@@ -4717,7 +4717,26 @@
           button.disabled = true;
           button.textContent = "Submitting…";
           try {
-            await saveFarmSubmission("consent", record);
+            const consentResult = await saveFarmSubmission("consent", record);
+            if (consentResult.notificationSent === false) {
+              await sendFarmNotification(
+                `New farm participation consent – ${record.participantName}`,
+                {
+                  participant_name: record.participantName,
+                  contact: record.contact,
+                  parent_or_guardian: record.guardianName || "Not provided",
+                  activity: record.activity,
+                  planned_visit_date: record.visitDate,
+                  emergency_contact: record.emergencyContact,
+                  risk_terms_accepted: record.acceptedRisk ? "Yes" : "No",
+                  photo_permission: record.photoPermission ? "Yes" : "No",
+                  typed_signature: record.signature,
+                  submitted_at: record.submittedAt,
+                  message:
+                    "A customer submitted Liticia's Sunflower Farm participation consent. The PDF delivery was unavailable, so this is the backup notification.",
+                },
+              );
+            }
             consents.unshift(record);
             store.set("liticia-consents", consents);
             if (ownerToken) await refreshOwnerData();
@@ -4894,7 +4913,7 @@
             document.querySelector("#ownerLogin").hidden = true;
             document.querySelector("#ownerPanel").hidden = false;
             applyOwnerData(result.data);
-            status.textContent = "Owner panel synchronized with Google Sheets.";
+            status.textContent = "";
           } catch (error) {
             failedOwnerLogins++;
             if (failedOwnerLogins >= 5) {
