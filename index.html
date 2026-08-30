@@ -510,6 +510,43 @@
         grid-template-columns: 1fr 1fr;
         gap: 15px;
       }
+      .participant-manager {
+        padding: 18px;
+        background: rgba(255, 253, 247, 0.55);
+        border: 1px solid rgba(71, 55, 29, 0.2);
+        border-radius: 16px;
+      }
+      .participant-manager > strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .participant-manager > small {
+        display: block;
+        margin-bottom: 13px;
+        color: #6b5329;
+      }
+      .participant-fields {
+        display: grid;
+        gap: 10px;
+      }
+      .participant-entry {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: end;
+      }
+      .participant-entry .remove-participant {
+        min-width: 88px;
+        padding: 12px;
+        background: #6f3d2f;
+      }
+      .participant-entry:first-child .remove-participant {
+        display: none;
+      }
+      #addParticipant {
+        margin-top: 12px;
+        background: var(--olive);
+      }
       label {
         display: grid;
         gap: 8px;
@@ -839,6 +876,12 @@
         }
         .owner-form {
           grid-template-columns: 1fr;
+        }
+        .participant-entry {
+          grid-template-columns: 1fr;
+        }
+        .participant-entry .remove-participant {
+          justify-self: start;
         }
       }
       @media (max-width: 560px) {
@@ -3783,9 +3826,17 @@
             tabindex="-1"
             autocomplete="off"
             aria-hidden="true"
-          /><label
-            >Participant name<input name="participantName" required /></label
-          ><label>Email or phone<input name="contact" required /></label
+          /><div class="full participant-manager">
+            <strong>Children or participants</strong>
+            <small>Add each person who will be covered by this consent.</small>
+            <div class="participant-fields" id="participantFields">
+              <div class="participant-entry">
+                <label>Child or participant 1<input name="participantName" required /></label>
+                <button class="remove-participant" type="button">Remove</button>
+              </div>
+            </div>
+            <button id="addParticipant" type="button">+ Add another child</button>
+          </div><label>Email or phone<input name="contact" required /></label
           ><label
             >Parent/guardian name <small>(if under 18)</small
             ><input name="guardianName" /></label
@@ -4640,8 +4691,14 @@
         document.querySelector("#recordRows").innerHTML = rows.length
           ? rows
               .map(
-                (r) =>
-                  `<tr><td>${clean(r.submittedAt)}</td><td><b>${clean(r.participantName)}</b><br>${clean(r.contact)}${r.guardianName ? `<br>Guardian: ${clean(r.guardianName)}` : ""}</td><td>${clean(r.activity)}</td><td>${clean(r.visitDate)}</td><td>${clean(r.signature)}</td><td><button class="record-pdf-button" type="button" data-download-consent="${consents.indexOf(r)}">Download PDF</button></td></tr>`,
+                (r) => {
+                  const familySize = r.submissionGroup
+                    ? consents.filter(
+                        (item) => item.submissionGroup === r.submissionGroup,
+                      ).length
+                    : 1;
+                  return `<tr><td>${clean(r.submittedAt)}</td><td><b>${clean(r.participantName)}</b><br>${clean(r.contact)}${r.guardianName ? `<br>Guardian: ${clean(r.guardianName)}` : ""}${familySize > 1 ? `<br><small>Family submission: ${familySize} participants</small>` : ""}</td><td>${clean(r.activity)}</td><td>${clean(r.visitDate)}</td><td>${clean(r.signature)}</td><td><button class="record-pdf-button" type="button" data-download-consent="${consents.indexOf(r)}">${familySize > 1 ? "Family PDF" : "Download PDF"}</button></td></tr>`;
+                },
               )
               .join("")
           : `<tr><td colspan="6">No participation records are currently saved.</td></tr>`;
@@ -4675,9 +4732,24 @@
         return lines;
       }
       function downloadConsentPdf(record) {
+        const familyRecords = record.submissionGroup
+          ? consents.filter(
+              (item) => item.submissionGroup === record.submissionGroup,
+            )
+          : [record];
+        const participantNames = [
+          ...new Set(
+            familyRecords.map((item) => item.participantName).filter(Boolean),
+          ),
+        ];
         const fields = [
           ["Submitted", record.submittedAt],
-          ["Participant name", record.participantName],
+          [
+            participantNames.length > 1
+              ? "Children / participants"
+              : "Participant name",
+            participantNames.join(", ") || record.participantName,
+          ],
           ["Email or phone", record.contact],
           ["Parent/guardian", record.guardianName],
           ["Activity", record.activity],
@@ -4732,14 +4804,16 @@
           pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
         });
         pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-        const safeName = consentPdfAscii(record.participantName || "Participant")
+        const safeName = consentPdfAscii(
+          record.guardianName || participantNames[0] || "Participant",
+        )
           .replace(/[^a-z0-9_-]+/gi, "-")
           .replace(/^-+|-+$/g, "");
         const blob = new Blob([pdf], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `Liticias-Farm-Consent-${safeName || "Participant"}.pdf`;
+        link.download = `Liticias-Farm-Consent-${safeName || "Family"}.pdf`;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -4805,6 +4879,48 @@
           )
           .join("");
       }
+      function updateParticipantFields() {
+        const entries = [
+          ...document.querySelectorAll("#participantFields .participant-entry"),
+        ];
+        entries.forEach((entry, index) => {
+          entry.querySelector("label").childNodes[0].textContent =
+            `Child or participant ${index + 1}`;
+        });
+        const addButton = document.querySelector("#addParticipant");
+        addButton.disabled = entries.length >= 5;
+        addButton.textContent =
+          entries.length >= 5
+            ? "Maximum of 5 participants"
+            : "+ Add another child";
+      }
+      function resetParticipantFields() {
+        const entries = document.querySelectorAll(
+          "#participantFields .participant-entry",
+        );
+        entries.forEach((entry, index) => {
+          if (index > 0) entry.remove();
+        });
+        updateParticipantFields();
+      }
+      document.querySelector("#addParticipant").addEventListener("click", () => {
+        const fields = document.querySelector("#participantFields");
+        if (fields.children.length >= 5) return;
+        const entry = document.createElement("div");
+        entry.className = "participant-entry";
+        entry.innerHTML = `<label>Child or participant<input name="participantName" required /></label><button class="remove-participant" type="button">Remove</button>`;
+        fields.appendChild(entry);
+        updateParticipantFields();
+        entry.querySelector("input").focus();
+      });
+      document
+        .querySelector("#participantFields")
+        .addEventListener("click", (event) => {
+          const button = event.target.closest(".remove-participant");
+          if (!button) return;
+          button.closest(".participant-entry").remove();
+          updateParticipantFields();
+        });
       document
         .querySelector("#consentForm")
         .addEventListener("submit", async (e) => {
@@ -4815,12 +4931,18 @@
           if (f.get("_honey")) return;
           const record = Object.fromEntries(f.entries());
           delete record._honey;
+          record.participants = f
+            .getAll("participantName")
+            .map((name) => String(name).trim())
+            .filter((name, index, names) => name && names.indexOf(name) === index);
+          record.participantName = record.participants[0] || "";
           record.photoPermission = f.get("photoPermission") === "yes";
           record.acceptedRisk = f.get("acceptedRisk") === "yes";
           record.submittedAt = new Date().toLocaleString();
           record.id = crypto.randomUUID
             ? crypto.randomUUID()
             : String(Date.now());
+          record.submissionGroup = record.id;
           button.disabled = true;
           button.textContent = "Submitting…";
           try {
@@ -4829,7 +4951,7 @@
               await sendFarmNotification(
                 `New farm participation consent – ${record.participantName}`,
                 {
-                  participant_name: record.participantName,
+                  children_or_participants: record.participants.join(", "),
                   contact: record.contact,
                   parent_or_guardian: record.guardianName || "Not provided",
                   activity: record.activity,
@@ -4844,10 +4966,16 @@
                 },
               );
             }
-            consents.unshift(record);
+            consents.unshift(
+              ...record.participants.map((participantName) => ({
+                ...record,
+                participantName,
+              })),
+            );
             store.set("liticia-consents", consents);
             if (ownerToken) await refreshOwnerData();
             form.reset();
+            resetParticipantFields();
             renderRecords();
             toast("Consent submitted—thank you!");
           } catch (error) {
