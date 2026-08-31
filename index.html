@@ -689,6 +689,8 @@
           sans-serif;
         letter-spacing: 0.06em;
         text-decoration: none;
+        text-align: center;
+        white-space: nowrap;
         transition:
           transform 0.2s ease,
           box-shadow 0.2s ease,
@@ -721,12 +723,17 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
+        min-width: 0;
       }
       .qr .payment-actions {
         margin-top: 5px;
       }
       .harvest-foot .payment-actions {
         justify-content: flex-end;
+      }
+      .harvest-foot {
+        align-items: center;
+        flex-wrap: wrap;
       }
       .harvest-foot .venmo-button,
       .harvest-foot .stripe-button {
@@ -884,6 +891,14 @@
         .pay {
           grid-template-columns: 1fr;
         }
+        .pay {
+          gap: 38px;
+          padding: 64px 7vw;
+        }
+        .qr {
+          width: min(100%, 470px);
+          justify-self: center;
+        }
         .calendar-grid {
           grid-template-columns: 1fr 1fr;
         }
@@ -956,7 +971,29 @@
           padding: 80px 0;
         }
         .pay {
-          padding: 60px 7vw;
+          gap: 28px;
+          padding: 46px 20px;
+        }
+        .qr {
+          width: 100%;
+          min-height: 330px;
+          padding: 34px 18px;
+          aspect-ratio: auto;
+        }
+        .qr span {
+          font-size: 58px;
+        }
+        .qr strong {
+          font-size: 18px;
+        }
+        .qr .payment-actions {
+          width: 100%;
+        }
+        .qr .venmo-button,
+        .qr .stripe-button {
+          flex: 1 1 100%;
+          width: 100%;
+          max-width: 320px;
         }
         .owner-login {
           flex-direction: column;
