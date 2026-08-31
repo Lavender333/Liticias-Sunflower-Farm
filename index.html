@@ -672,7 +672,8 @@
           sans-serif;
         letter-spacing: 0.12em;
       }
-      .venmo-button {
+      .venmo-button,
+      .stripe-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -680,7 +681,6 @@
         min-height: 48px;
         padding: 14px 22px;
         color: #fff;
-        background: #008cff;
         border: 2px solid transparent;
         border-radius: 999px;
         box-shadow: 0 12px 28px rgba(0, 140, 255, 0.24);
@@ -694,6 +694,13 @@
           box-shadow 0.2s ease,
           background 0.2s ease;
       }
+      .venmo-button {
+        background: #008cff;
+      }
+      .stripe-button {
+        background: #635bff;
+        box-shadow: 0 12px 28px rgba(99, 91, 255, 0.24);
+      }
       .venmo-button:hover,
       .venmo-button:focus-visible {
         color: #fff;
@@ -701,10 +708,28 @@
         box-shadow: 0 16px 34px rgba(0, 116, 212, 0.3);
         transform: translateY(-2px);
       }
-      .qr .venmo-button {
+      .stripe-button:hover,
+      .stripe-button:focus-visible {
+        color: #fff;
+        background: #4f46e5;
+        box-shadow: 0 16px 34px rgba(79, 70, 229, 0.3);
+        transform: translateY(-2px);
+      }
+      .payment-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .qr .payment-actions {
         margin-top: 5px;
       }
-      .harvest-foot .venmo-button {
+      .harvest-foot .payment-actions {
+        justify-content: flex-end;
+      }
+      .harvest-foot .venmo-button,
+      .harvest-foot .stripe-button {
         flex: 0 0 auto;
         min-height: 42px;
         padding: 11px 18px;
@@ -1106,9 +1131,15 @@
         .harvest-foot {
           display: block;
         }
-        .harvest-foot .venmo-button {
+        .harvest-foot .payment-actions {
           width: 100%;
+          justify-content: stretch;
           margin-top: 14px;
+        }
+        .harvest-foot .venmo-button,
+        .harvest-foot .stripe-button {
+          flex: 1 1 100%;
+          width: 100%;
         }
         .price-edit-row {
           grid-template-columns: 1fr 1fr;
@@ -3974,8 +4005,8 @@
               <span>💛</span>
               <h3>Payment options</h3>
               <p>
-                Use the current price board, then pay using the cash box or pay
-                securely through the farm’s Venmo account.
+                Use the current price board, then pay with the cash box, Venmo,
+                or the farm’s secure online payment page.
               </p>
             </article>
           </div>
@@ -3986,21 +4017,30 @@
           <p class="eyebrow">Simple self-serve payment</p>
           <h2>Pick. Scan. Enjoy.</h2>
           <p>
-            Select your produce, use the cash box or pay the farm directly with
-            Venmo, and you’re all set. Thank you for supporting our small farm.
+            Select your produce, then use the cash box, Venmo, or the secure
+            online payment option. Thank you for supporting our small farm.
           </p>
         </div>
         <div class="qr">
           <span>🌻</span><strong>PAY THE FARM</strong
-          ><small>Venmo: @sunflowerfarmstand</small
-          ><a
-            class="venmo-button"
-            href="https://www.venmo.com/u/sunflowerfarmstand"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Pay Liticia's Sunflower Farm with Venmo"
-            >Pay with Venmo</a
-          >
+          ><small>Choose the payment option you prefer.</small>
+          <div class="payment-actions">
+            <a
+              class="venmo-button"
+              href="https://www.venmo.com/u/sunflowerfarmstand"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Pay Liticia's Sunflower Farm with Venmo"
+              >Pay with Venmo</a
+            ><a
+              class="stripe-button"
+              href="https://buy.stripe.com/8x2bJ38iygsgd8X4cp9fW00"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Pay Liticia's Sunflower Farm securely online"
+              >Pay securely online</a
+            >
+          </div>
         </div>
       </section>
       <section class="section information" id="policies">
@@ -4877,7 +4917,7 @@
       }
       function renderPriceBoard() {
         document.querySelector("#priceBoard").innerHTML =
-          `<div class="harvest-card-grid">${priceItems.map((item) => `<article class="harvest-price-card ${item.soldOut ? "sold" : ""}">${item.soldOut ? `<span class="harvest-sold-badge">Sold out</span>` : ""}<div class="harvest-card-icon">${clean(item.icon || "🌱")}</div><div class="harvest-card-amount">${item.soldOut ? "Unavailable" : `$${clean(item.price)} ${clean(item.unit || "")}`}</div><div class="harvest-card-name">${clean(item.name || "Farm item")}</div>${item.note ? `<div class="harvest-card-note">${clean(item.note)}</div>` : ""}</article>`).join("")}</div><div class="harvest-foot"><span>Cash box or Venmo. Thank you! 🌻</span><a class="venmo-button" href="https://www.venmo.com/u/sunflowerfarmstand" target="_blank" rel="noopener noreferrer" aria-label="Pay Liticia's Sunflower Farm with Venmo">Pay with Venmo</a></div>`;
+          `<div class="harvest-card-grid">${priceItems.map((item) => `<article class="harvest-price-card ${item.soldOut ? "sold" : ""}">${item.soldOut ? `<span class="harvest-sold-badge">Sold out</span>` : ""}<div class="harvest-card-icon">${clean(item.icon || "🌱")}</div><div class="harvest-card-amount">${item.soldOut ? "Unavailable" : `$${clean(item.price)} ${clean(item.unit || "")}`}</div><div class="harvest-card-name">${clean(item.name || "Farm item")}</div>${item.note ? `<div class="harvest-card-note">${clean(item.note)}</div>` : ""}</article>`).join("")}</div><div class="harvest-foot"><span>Cash box, Venmo, or secure online payment. Thank you! 🌻</span><div class="payment-actions"><a class="venmo-button" href="https://www.venmo.com/u/sunflowerfarmstand" target="_blank" rel="noopener noreferrer" aria-label="Pay Liticia's Sunflower Farm with Venmo">Pay with Venmo</a><a class="stripe-button" href="https://buy.stripe.com/8x2bJ38iygsgd8X4cp9fW00" target="_blank" rel="noopener noreferrer" aria-label="Pay Liticia's Sunflower Farm securely online">Pay securely online</a></div></div>`;
       }
       function renderPriceEditor() {
         document.querySelector("#priceEditor").innerHTML = priceItems
