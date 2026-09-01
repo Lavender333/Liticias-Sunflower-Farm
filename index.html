@@ -676,6 +676,13 @@
           sans-serif;
         letter-spacing: 0.12em;
       }
+      .stripe-payment-qr {
+        display: block;
+        width: min(230px, 72%);
+        height: auto;
+        border-radius: 20px;
+        box-shadow: 0 16px 38px rgba(49, 43, 135, 0.2);
+      }
       .venmo-button,
       .stripe-button {
         display: inline-flex;
@@ -989,6 +996,10 @@
         }
         .qr strong {
           font-size: 18px;
+        }
+        .stripe-payment-qr {
+          width: min(230px, 78vw);
+          border-radius: 17px;
         }
         .qr .payment-actions {
           width: 100%;
@@ -4449,8 +4460,16 @@
           </p>
         </div>
         <div class="qr">
-          <span>🌻</span><strong>PAY THE FARM</strong
-          ><small>Choose the payment option you prefer.</small>
+          <strong>PAY THE FARM</strong>
+          <img
+            class="stripe-payment-qr"
+            src="media/stripe-payment-qr.png"
+            alt="Scan to pay Liticia's Sunflower Farm securely with Stripe"
+            width="880"
+            height="1055"
+            loading="lazy"
+          />
+          <small>Scan the code or choose a payment option below.</small>
           <div class="payment-actions">
             <a
               class="venmo-button"
