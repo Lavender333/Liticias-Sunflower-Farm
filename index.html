@@ -21,6 +21,21 @@
       content="Self-serve farm stand, goat visits, private parties, and hands-on classes in Chardon, Ohio."
     />
     <title>Liticia's Sunflower Farm</title>
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-42HL914B37"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      window.trackFarmEvent = function (eventName, details) {
+        gtag("event", eventName, details || {});
+      };
+      gtag("js", new Date());
+      gtag("config", "G-42HL914B37");
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -4561,7 +4576,7 @@
           <details id="privacy">
             <summary>Privacy notice</summary>
             <div class="policy-copy">
-              <p><strong>Last updated August 27, 2026.</strong></p>
+              <p><strong>Last updated September 2, 2026.</strong></p>
               <p>
                 Participation consent forms, guestbook comments, and email-list
                 signups are saved to the farm’s private Google Sheets backend.
@@ -4581,6 +4596,14 @@
                 government-identification information. Email addresses are used
                 only for requested farm updates. Subscribers may request removal
                 from the farm’s records.
+              </p>
+              <p>
+                This website uses Google Analytics to understand general site
+                traffic, including referring sources, pages viewed, device type,
+                approximate location, and non-personal actions such as payment
+                or directions clicks. Analytics may use cookies. Names, email
+                addresses, signatures, and form-field contents are not included
+                in the farm’s analytics events.
               </p>
             </div>
           </details>
@@ -5503,6 +5526,10 @@
             form.reset();
             resetParticipantFields();
             renderRecords();
+            window.trackFarmEvent?.("consent_submitted", {
+              participant_count: record.participants.length,
+              activity_type: String(record.activity || "farm_activity"),
+            });
             toast("Consent submitted—thank you!");
           } catch (error) {
             console.error("Consent delivery failed", error);
@@ -5550,6 +5577,7 @@
             if (ownerToken) await refreshOwnerData();
             form.reset();
             renderOwnerComments();
+            window.trackFarmEvent?.("guestbook_submitted");
             toast("Thank you—your comment was sent to the farm for approval.");
           } catch (error) {
             console.error("Comment delivery failed", error);
@@ -5618,6 +5646,9 @@
             document.querySelector("#subscriberInterest").value =
               "Farm updates";
             renderSubscribers();
+            window.trackFarmEvent?.("email_signup_completed", {
+              signup_interest: interest,
+            });
             toast(
               interest === "Goat Yoga waitlist"
                 ? "You’re on the Goat Yoga waitlist—thank you!"
@@ -6152,6 +6183,36 @@
         });
         window.addEventListener("resize", () => {
           if (window.innerWidth > 900) setOpen(false);
+        });
+      })();
+    </script>
+    <script id="analytics-events-script">
+      (() => {
+        document.addEventListener("click", (event) => {
+          const link = event.target.closest("a[href]");
+          if (!link) return;
+          const href = link.href || "";
+          if (href.includes("venmo.com/u/sunflowerfarmstand")) {
+            window.trackFarmEvent?.("payment_link_click", {
+              payment_method: "venmo",
+            });
+          } else if (href.includes("buy.stripe.com/")) {
+            window.trackFarmEvent?.("payment_link_click", {
+              payment_method: "stripe",
+            });
+          } else if (
+            href.includes("google.com/maps") ||
+            href.includes("maps.apple.com")
+          ) {
+            window.trackFarmEvent?.("directions_click", {
+              map_provider: href.includes("maps.apple.com") ? "apple" : "google",
+            });
+          }
+          if (link.closest("#siteNav")) {
+            window.trackFarmEvent?.("navigation_click", {
+              navigation_item: link.textContent.trim().toLowerCase(),
+            });
+          }
         });
       })();
     </script>
