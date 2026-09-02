@@ -4483,8 +4483,8 @@
               href="https://buy.stripe.com/8x2bJ38iygsgd8X4cp9fW00"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Pay Liticia's Sunflower Farm securely online"
-              >Pay securely online</a
+              aria-label="Pay Liticia's Sunflower Farm with Stripe"
+              >Pay with Stripe</a
             >
           </div>
         </div>
@@ -5363,7 +5363,7 @@
       }
       function renderPriceBoard() {
         document.querySelector("#priceBoard").innerHTML =
-          `<div class="harvest-card-grid">${priceItems.map((item) => `<article class="harvest-price-card ${item.soldOut ? "sold" : ""}">${item.soldOut ? `<span class="harvest-sold-badge">Sold out</span>` : ""}<div class="harvest-card-icon">${clean(item.icon || "🌱")}</div><div class="harvest-card-amount">${item.soldOut ? "Unavailable" : `$${clean(item.price)} ${clean(item.unit || "")}`}</div><div class="harvest-card-name">${clean(item.name || "Farm item")}</div>${item.note ? `<div class="harvest-card-note">${clean(item.note)}</div>` : ""}</article>`).join("")}</div><div class="harvest-foot"><span>Cash box, Venmo, or secure online payment. Thank you! 🌻</span><div class="payment-actions"><a class="venmo-button" href="https://www.venmo.com/u/sunflowerfarmstand" target="_blank" rel="noopener noreferrer" aria-label="Pay Liticia's Sunflower Farm with Venmo">Pay with Venmo</a><a class="stripe-button" href="https://buy.stripe.com/8x2bJ38iygsgd8X4cp9fW00" target="_blank" rel="noopener noreferrer" aria-label="Pay Liticia's Sunflower Farm securely online">Pay securely online</a></div></div>`;
+          `<div class="harvest-card-grid">${priceItems.map((item) => `<article class="harvest-price-card ${item.soldOut ? "sold" : ""}">${item.soldOut ? `<span class="harvest-sold-badge">Sold out</span>` : ""}<div class="harvest-card-icon">${clean(item.icon || "🌱")}</div><div class="harvest-card-amount">${item.soldOut ? "Unavailable" : `$${clean(item.price)} ${clean(item.unit || "")}`}</div><div class="harvest-card-name">${clean(item.name || "Farm item")}</div>${item.note ? `<div class="harvest-card-note">${clean(item.note)}</div>` : ""}</article>`).join("")}</div><div class="harvest-foot"><span>Cash box, Venmo, or secure online payment. Thank you! 🌻</span><div class="payment-actions"><a class="venmo-button" href="https://www.venmo.com/u/sunflowerfarmstand" target="_blank" rel="noopener noreferrer" aria-label="Pay Liticia's Sunflower Farm with Venmo">Pay with Venmo</a><a class="stripe-button" href="https://buy.stripe.com/8x2bJ38iygsgd8X4cp9fW00" target="_blank" rel="noopener noreferrer" aria-label="Pay Liticia's Sunflower Farm with Stripe">Pay with Stripe</a></div></div>`;
       }
       function renderPriceEditor() {
         document.querySelector("#priceEditor").innerHTML = priceItems
